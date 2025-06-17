@@ -122,7 +122,7 @@ def prepare_data():
             X_val, y_val,
             X_test, y_test)
 
-def train_model(X_train, y_train, X_val, y_val, batch_size=16, epochs=5):
+def train_model(X_train, y_train, X_val, y_val, batch_size=16, epochs=5, class_weights=None):
     """Huấn luyện mô hình"""
     # Khởi tạo tokenizer và dataset
     tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base")
@@ -140,7 +140,14 @@ def train_model(X_train, y_train, X_val, y_val, batch_size=16, epochs=5):
     
     # Định nghĩa optimizer và loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
-    class_weights = torch.tensor([1.0, 8.22], dtype=torch.float).to(device)
+    
+    if class_weights is None:
+        # Mặc định, sử dụng trọng số ban đầu nếu không được cung cấp
+        class_weights = torch.tensor([1.0, 8.22], dtype=torch.float).to(device)
+    else:
+        # Đảm bảo class_weights là tensor và chuyển sang device
+        class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+        
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     
     # Training loop
@@ -239,7 +246,8 @@ def main():
     
     # Huấn luyện mô hình
     print("\nBắt đầu huấn luyện mô hình...")
-    model = train_model(X_train, y_train, X_val, y_val)
+    # Thử nghiệm với trọng số lớp đã điều chỉnh (ví dụ: 1.0 cho non-toxic, 3.0 cho toxic)
+    model = train_model(X_train, y_train, X_val, y_val, class_weights=[1.0, 3.0])
     
     # Đánh giá mô hình
     print("\nĐánh giá mô hình trên tập test...")
